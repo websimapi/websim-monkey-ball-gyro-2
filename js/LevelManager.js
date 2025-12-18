@@ -105,7 +105,7 @@ export class LevelManager {
                     return map.reverse();
                 })(),
                 scale: 4,
-                maxTilt: 0.12
+                maxTilt: 0.25
             },
             // Level 3: Golden Zig-Zag
             // Sharp 90 degree turns, still walled.

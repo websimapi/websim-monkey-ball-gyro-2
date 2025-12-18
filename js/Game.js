@@ -447,8 +447,8 @@ export class Game {
             const maxChargeMs = 1200; // cap charge at ~1.2s
             const charge = Math.min(holdMs / maxChargeMs, 1);
 
-            const baseStrength = 8;
-            const extraStrength = 16;
+            const baseStrength = 3;
+            const extraStrength = 10;
             const strength = baseStrength + extraStrength * charge;
 
             const impulse = new CANNON.Vec3(
