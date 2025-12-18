@@ -41,7 +41,9 @@ export class Game {
             currentY: 0,
             startTime: 0,
             dirX: 0,
-            dirZ: 0
+            dirZ: 0,
+            lastDashTime: -10000,
+            cooldown: 3000
         };
 
         // Reusable vectors for converting screen drags to world directions
@@ -380,6 +382,10 @@ export class Game {
         target.addEventListener('touchstart', (e) => {
             if (!this.isPlaying) return;
             if (isInMenu(e)) return;
+            
+            const now = performance.now();
+            if (now - this.dashState.lastDashTime < this.dashState.cooldown) return;
+
             if (e.touches.length > 1) return; // single touch only
 
             const t = e.touches[0];
@@ -447,8 +453,8 @@ export class Game {
             const maxChargeMs = 1200; // cap charge at ~1.2s
             const charge = Math.min(holdMs / maxChargeMs, 1);
 
-            const baseStrength = 3;
-            const extraStrength = 10;
+            const baseStrength = 1.5;
+            const extraStrength = 6.0;
             const strength = baseStrength + extraStrength * charge;
 
             const impulse = new CANNON.Vec3(
@@ -458,6 +464,7 @@ export class Game {
             );
 
             this.ballBody.applyImpulse(impulse, this.ballBody.position);
+            this.dashState.lastDashTime = performance.now();
         };
 
         target.addEventListener('touchend', (e) => {
