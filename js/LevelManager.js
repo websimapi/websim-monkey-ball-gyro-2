@@ -294,33 +294,33 @@ export class LevelManager {
     }
 
     buildSmoothTrack() {
-        // 1. Generate Curve (Left-to-Right Serpentine)
+        // 1. Generate Curve (Descending Serpentine)
         const points = [];
         const segments = 120;
         
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
             
-            // Winding path along X axis (Left to Right)
-            const x = t * 250; 
-            const z = Math.sin(t * Math.PI * 5) * 20; // Wiggle depth
-            // Gentle varying slope, generally down
-            const y = Math.cos(t * Math.PI * 3) * 4 - (t * 30); 
+            // Winding path - wider and smoother
+            const x = Math.sin(t * Math.PI * 3.5) * 20; 
+            const z = -t * 220; 
+            // Linear descent prevents twisting/banking artifacts found in oscillating paths
+            const y = 25 - (t * 40); 
             
             points.push(new THREE.Vector3(x, y, z));
         }
         
         const curve = new THREE.CatmullRomCurve3(points);
         
-        // 2. Shape (Flat Track - Dangerous! No Walls)
+        // 2. Shape (Flat Ribbon, no railings as requested)
         const shape = new THREE.Shape();
-        const w = 8;        // Track width (slightly wider)
-        const thick = 1.0;  // Thickness
+        const w = 10;    // Wider track
+        const t = 1.0;   // Thickness
         
-        // Simple flat rectangle
+        // Simple Flat Rectangle Cross-section
         shape.moveTo(-w/2, 0);
-        shape.lineTo(-w/2, -thick);
-        shape.lineTo(w/2, -thick);
+        shape.lineTo(-w/2, -t);
+        shape.lineTo(w/2, -t);
         shape.lineTo(w/2, 0);
         
         // 3. Extrude Visual Mesh
