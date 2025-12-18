@@ -43,29 +43,9 @@ export class LevelManager {
     }
     
     updateTilt(tiltX, tiltZ) {
-        if (this.initialStates.length === 0) return;
-
-        const qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tiltX);
-        const qz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), tiltZ);
-        const qFinal = new THREE.Quaternion().multiplyQuaternions(qx, qz);
-
-        // Visuals
-        this.levelGroup.quaternion.copy(qFinal);
-        
-        // Physics
-        for (const state of this.initialStates) {
-            const v = state.initialPos.clone().applyQuaternion(qFinal);
-            state.body.position.set(v.x, v.y, v.z);
-            
-            const q = state.initialQuat.clone().premultiply(qFinal);
-            state.body.quaternion.set(q.x, q.y, q.z, q.w);
-        }
-        
-        // Goal Logic
-        if (this.initialGoalPos) {
-            const p = this.initialGoalPos.clone().applyQuaternion(qFinal);
-            this.goalPos.copy(p);
-        }
+        // Physics bodies are now static (flat). 
+        // Visual tilt and Gravity rotation are handled in Game.js via worldPivot.
+        // This method is deprecated but kept for signature compatibility.
     }
 
     loadLevel(levelNum) {
@@ -90,20 +70,42 @@ export class LevelManager {
                 ],
                 scale: 4
             },
-            // Level 2: The Long Run
+            // Level 2: The Serpentine
             {
                 map: (() => {
-                    const w = 16;
-                    const h = 120;
                     const map = [];
-                    const row = ".".repeat(w);
-                    map.push(".".repeat(Math.floor(w/2)-1) + "G" + ".".repeat(Math.ceil(w/2)));
-                    for(let i=0; i<h; i++) map.push(row);
-                    map.push(".".repeat(Math.floor(w/2)-1) + "S" + ".".repeat(Math.ceil(w/2)));
-                    return map;
+                    const h = 60; 
+                    const w = 15;
+                    
+                    // Generate a winding path
+                    for (let i = 0; i < h; i++) {
+                        let row = "";
+                        // Start and End pads
+                        if (i < 5) {
+                            row = ".......S.......";
+                        } else if (i > h - 5) {
+                            row = ".......G.......";
+                        } else {
+                            // Sine wave walls
+                            const center = 7 + Math.sin(i * 0.3) * 4;
+                            const pathWidth = 4;
+                            
+                            for (let c = 0; c < w; c++) {
+                                if (c > center - pathWidth/2 && c < center + pathWidth/2) {
+                                    row += "."; // Path
+                                } else {
+                                    row += "W"; // Wall
+                                }
+                            }
+                        }
+                        // Ensure row length
+                        while(row.length < w) row += "W";
+                        map.push(row);
+                    }
+                    return map.reverse();
                 })(),
                 scale: 4,
-                maxTilt: 0.15
+                maxTilt: 0.12
             },
             // Level 3: Golden Zig-Zag
             // Sharp 90 degree turns, still walled.
@@ -308,17 +310,7 @@ export class LevelManager {
     }
 
     captureInitialStates() {
-        this.initialStates = [];
-        this.bodies.forEach(body => {
-            this.initialStates.push({
-                body: body,
-                initialPos: new THREE.Vector3(body.position.x, body.position.y, body.position.z),
-                initialQuat: new THREE.Quaternion(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w)
-            });
-        });
-        if (this.goalPos) {
-            this.initialGoalPos = this.goalPos.clone();
-        }
+        // No-op
     }
 }
 

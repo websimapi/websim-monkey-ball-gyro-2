@@ -30,6 +30,8 @@ export class Game {
         this.cameraOffset = new THREE.Vector3(0, 12, 12);
         this.cameraLerpFactor = 0.12;
 
+        this.worldPivot = new THREE.Group();
+
         // Dash / charge state
         this.dashState = {
             charging: false,
@@ -55,6 +57,7 @@ export class Game {
         // Init Scene
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87CEEB);
+        this.scene.add(this.worldPivot);
         
         // Init Camera
         this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -89,7 +92,8 @@ export class Game {
         this.world.defaultContactMaterial.restitution = 0.2;
         
         // Managers
-        this.levelManager = new LevelManager(this.scene, this.world);
+        // Pass worldPivot as the scene parent for level elements
+        this.levelManager = new LevelManager(this.worldPivot, this.world);
         this.inputManager = new InputManager();
         this.audioManager = new AudioManager();
         
@@ -128,7 +132,7 @@ export class Game {
         
         this.ballMesh = new THREE.Mesh(geometry, material);
         this.ballMesh.castShadow = true;
-        this.scene.add(this.ballMesh);
+        this.worldPivot.add(this.ballMesh);
         
         // Body
         const shape = new CANNON.Sphere(radius);
@@ -165,7 +169,7 @@ export class Game {
         group.add(tip);
 
         group.visible = false;
-        this.scene.add(group);
+        this.worldPivot.add(group);
         this.dashArrow = group;
     }
 
@@ -249,18 +253,23 @@ export class Game {
         // 1. Input & Physics Gravity
         const input = this.inputManager.getInput();
         
-        // Terrain Tilt
-        // Input Y is -1 (Forward) or Beta (Forward Tilt)
-        // With 'tiltX = input.y * maxTilt':
-        //   Forward (y < 0 or beta mapped) -> Negative X Rotation -> Far side DOWN -> Roll Forward
         const maxTilt = this.levelManager.currentMaxTilt;
-        const tiltX = input.y * maxTilt;
+        // Inverting Y input as requested
+        const tiltX = -input.y * maxTilt; 
         const tiltZ = -input.x * maxTilt;
 
-        this.levelManager.updateTilt(tiltX, tiltZ);
+        // Visual Tilt (World Pivot)
+        const qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tiltX);
+        const qz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), tiltZ);
+        const qFinal = new THREE.Quaternion().multiplyQuaternions(qx, qz);
+
+        this.worldPivot.quaternion.slerp(qFinal, 0.1);
         
-        // Keep gravity constant down
-        this.world.gravity.set(0, -30, 0);
+        // Gravity Tilt (Physics)
+        // Rotate gravity opposite to the visual world tilt to simulate slope
+        const gravity = new THREE.Vector3(0, -30, 0);
+        gravity.applyQuaternion(this.worldPivot.quaternion.clone().invert());
+        this.world.gravity.set(gravity.x, gravity.y, gravity.z);
         
 
 
@@ -279,12 +288,15 @@ export class Game {
         }
         
         // 4. Camera Follow
-        const targetPos = this.ballMesh.position.clone();
-        const desiredPos = targetPos.clone().add(this.cameraOffset);
+        // Use World Position because ballMesh is inside rotated pivot
+        const targetWorldPos = new THREE.Vector3();
+        this.ballMesh.getWorldPosition(targetWorldPos);
+
+        const desiredPos = targetWorldPos.clone().add(this.cameraOffset);
         
         // Smooth follow behind and above the ball
         this.camera.position.lerp(desiredPos, this.cameraLerpFactor);
-        this.camera.lookAt(targetPos);
+        this.camera.lookAt(targetWorldPos);
         
         // 5. Game Logic
         this.timeLeft -= dt;
