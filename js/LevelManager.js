@@ -82,7 +82,7 @@ export class LevelManager {
             // Level 2: The Serpentine (Procedural 3D Track)
             {
                 type: 'procedural_track',
-                maxTilt: 0.75
+                maxTilt: 1.0
             },
             // Level 3: Golden Zig-Zag
             {
@@ -294,70 +294,98 @@ export class LevelManager {
     }
 
     buildSmoothTrack() {
-        // 1. Generate Curve (Descending Serpentine)
+        // 1. Generate Curve Points
         const points = [];
-        const segments = 120;
+        const segments = 200; 
         
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
-            
-            // Winding path - wider and smoother
             const x = Math.sin(t * Math.PI * 3.5) * 20; 
             const z = -t * 220; 
-            // Linear descent prevents twisting/banking artifacts found in oscillating paths
             const y = 25 - (t * 40); 
-            
             points.push(new THREE.Vector3(x, y, z));
         }
         
-        const curve = new THREE.CatmullRomCurve3(points);
+        // 2. Build Ribbon Geometry manually to ensure flat cross-section (No banking)
+        // This solves the issue of ExtrudeGeometry rotating the shape sideways
+        const width = 12;
+        const geometryVerts = [];
+        const geometryIndices = [];
         
-        // 2. Shape (Flat Ribbon, no railings as requested)
-        const shape = new THREE.Shape();
-        const w = 10;    // Wider track
-        const t = 1.0;   // Thickness
+        const ribbonVerts = []; // Temp storage for L/R pairs
         
-        // Simple Flat Rectangle Cross-section
-        shape.moveTo(-w/2, 0);
-        shape.lineTo(-w/2, -t);
-        shape.lineTo(w/2, -t);
-        shape.lineTo(w/2, 0);
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i];
+            
+            // Tangent
+            const forward = new THREE.Vector3();
+            if (i < points.length - 1) {
+                forward.subVectors(points[i+1], p);
+            } else if (i > 0) {
+                forward.subVectors(p, points[i-1]);
+            } else {
+                forward.set(0, 0, -1);
+            }
+            forward.normalize();
+            
+            // Right Vector (Force Horizontal to prevent sideways tilt)
+            const up = new THREE.Vector3(0, 1, 0);
+            const right = new THREE.Vector3().crossVectors(forward, up).normalize();
+            
+            // Fallback for strictly vertical segments
+            if (right.lengthSq() < 0.001) right.set(1, 0, 0);
+            
+            const leftV = new THREE.Vector3().copy(p).addScaledVector(right, -width/2);
+            const rightV = new THREE.Vector3().copy(p).addScaledVector(right, width/2);
+            
+            ribbonVerts.push(leftV, rightV);
+        }
         
-        // 3. Extrude Visual Mesh
-        const extrudeSettings = {
-            steps: 200, 
-            bevelEnabled: false,
-            extrudePath: curve
-        };
+        // Flatten into buffer
+        for (const v of ribbonVerts) {
+            geometryVerts.push(v.x, v.y, v.z);
+        }
         
-        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        // Generate Triangles
+        for (let i = 0; i < segments; i++) {
+            const base = i * 2;
+            const l1 = base;
+            const r1 = base + 1;
+            const l2 = base + 2;
+            const r2 = base + 3;
+            
+            // Two triangles per segment
+            geometryIndices.push(l1, l2, r1);
+            geometryIndices.push(r1, l2, r2);
+        }
         
-        const mesh = new THREE.Mesh(geometry, this.floorMat);
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryVerts, 3));
+        geometry.setIndex(geometryIndices);
+        geometry.computeVertexNormals();
+        
+        // Visual Mesh
+        const mat = this.floorMat.clone();
+        mat.side = THREE.DoubleSide; // Visible from below just in case
+        const mesh = new THREE.Mesh(geometry, mat);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         this.levelGroup.add(mesh);
         
-        // 4. Physics Body (Trimesh)
-        const positions = geometry.attributes.position.array;
-        const indices = [];
-        for(let i = 0; i < positions.length / 3; i++) {
-            indices.push(i);
-        }
-        
-        const trimesh = new CANNON.Trimesh(positions, indices);
-        const body = new CANNON.Body({ mass: 0 }); // Static
+        // Physics Body (Trimesh)
+        const trimesh = new CANNON.Trimesh(geometryVerts, geometryIndices);
+        const body = new CANNON.Body({ mass: 0 });
         body.addShape(trimesh);
         
         this.world.addBody(body);
         this.bodies.push(body);
         
-        // 5. Start & Goal
+        // Start & Goal
         const startPoint = points[0];
         const goalPoint = points[points.length - 1];
         
         this.createGoal(goalPoint.x, goalPoint.y + 0.5, goalPoint.z);
         
-        // Return start pos
         return { x: startPoint.x, y: startPoint.y + 5, z: startPoint.z };
     }
 }
