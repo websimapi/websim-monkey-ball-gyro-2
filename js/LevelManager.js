@@ -300,15 +300,16 @@ export class LevelManager {
         
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
-            const x = Math.sin(t * Math.PI * 3.5) * 20; 
-            const z = -t * 220; 
-            const y = 25 - (t * 40); 
+            // Wider, smoother curves and longer track
+            const x = Math.sin(t * Math.PI * 4.0) * 50; 
+            const z = -t * 300; 
+            const y = 30 - (t * 60); 
             points.push(new THREE.Vector3(x, y, z));
         }
         
         // 2. Build Ribbon Geometry manually to ensure flat cross-section (No banking)
         // This solves the issue of ExtrudeGeometry rotating the shape sideways
-        const width = 12;
+        const width = 20;
         const geometryVerts = [];
         const geometryIndices = [];
         

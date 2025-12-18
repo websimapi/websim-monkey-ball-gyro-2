@@ -21,7 +21,7 @@ export class PlayerManager {
             startTime: 0,
             dirX: 0, dirZ: 0,
             lastDashTime: -10000,
-            cooldown: 3000
+            cooldown: 4000
         };
 
         // Reusable vectors for dash calculation
@@ -274,8 +274,8 @@ export class PlayerManager {
             const holdMs = now - this.dashState.startTime;
             const maxChargeMs = 1200;
             const charge = Math.min(holdMs / maxChargeMs, 1);
-            const baseStrength = 1.5;
-            const extraStrength = 6.0;
+            const baseStrength = 1.0;
+            const extraStrength = 4.0;
             const strength = baseStrength + extraStrength * charge;
 
             const impulse = new CANNON.Vec3(dir.x * strength, strength * 0.5, dir.z * strength);
