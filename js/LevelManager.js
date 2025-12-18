@@ -89,31 +89,19 @@ export class LevelManager {
                 ],
                 scale: 4
             },
-            // Level 2: Aqua Hairpin
-            // A long straight into a wide U-turn.
+            // Level 2: The Long Run
             {
-                map: [
-                    "WWWWWWWWWWWWWWWWWWWW",
-                    "W.S................W",
-                    "W..................W",
-                    "WWWWWWWWWWWWWW.....W",
-                    "             W.....W",
-                    "             W.....W",
-                    "             W.....W",
-                    "             W.....W",
-                    "WWWWWWWWWWWWWW.....W",
-                    "W..................W",
-                    "W...O..O..O..O.....W",
-                    "W..................W",
-                    "W.....WWWWWWWWWWWWWW",
-                    "W.....W             ",
-                    "W.....WWWWWWWWWWWWWW",
-                    "W..................W",
-                    "W..................W",
-                    "WWWWWWWWWWWW....G..W",
-                    "           WWWWWWWWW"
-                ],
-                scale: 2
+                map: (() => {
+                    const w = 16;
+                    const h = 120;
+                    const map = [];
+                    const row = ".".repeat(w);
+                    map.push(".".repeat(Math.floor(w/2)-1) + "G" + ".".repeat(Math.ceil(w/2)));
+                    for(let i=0; i<h; i++) map.push(row);
+                    map.push(".".repeat(Math.floor(w/2)-1) + "S" + ".".repeat(Math.ceil(w/2)));
+                    return map;
+                })(),
+                scale: 4
             },
             // Level 3: Golden Zig-Zag
             // Sharp 90 degree turns, still walled.

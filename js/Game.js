@@ -237,7 +237,7 @@ export class Game {
         
         // Reset State
         this.isPlaying = true;
-        this.timeLeft = 60;
+        this.timeLeft = 180;
         this.clock.start();
     }
 
