@@ -122,19 +122,44 @@ export class Game {
     createPlayer() {
         const radius = 0.5;
         
-        // Mesh
-        const geometry = new THREE.SphereGeometry(radius, 32, 32);
+        // Group to hold the glass ball and the inner sprite
+        this.ballMesh = new THREE.Group();
+        this.worldPivot.add(this.ballMesh);
+
+        // 1. Inner Baboon (Crossed Planes for 3D volume effect)
         const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load('monkey_ball.png');
-        const material = new THREE.MeshStandardMaterial({ 
-            map: texture,
-            roughness: 0.4,
-            metalness: 0.1 
+        const baboonTexture = textureLoader.load('baboon.png');
+        const innerMat = new THREE.MeshBasicMaterial({ 
+            map: baboonTexture,
+            transparent: true,
+            side: THREE.DoubleSide
         });
         
-        this.ballMesh = new THREE.Mesh(geometry, material);
-        this.ballMesh.castShadow = true;
-        this.worldPivot.add(this.ballMesh);
+        // Slightly smaller than diameter to fit inside
+        const innerSize = radius * 1.6;
+        const plane1 = new THREE.Mesh(new THREE.PlaneGeometry(innerSize, innerSize), innerMat);
+        const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(innerSize, innerSize), innerMat);
+        plane2.rotation.y = Math.PI / 2;
+        
+        // Shadows for the character
+        plane1.castShadow = true;
+        plane2.castShadow = true;
+        
+        this.ballMesh.add(plane1);
+        this.ballMesh.add(plane2);
+
+        // 2. Outer Glass Sphere
+        const glassGeo = new THREE.SphereGeometry(radius, 32, 32);
+        const glassMat = new THREE.MeshStandardMaterial({
+            color: 0xaaccff,     // Slight blue tint
+            roughness: 0.1,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.3,        // See-through
+            side: THREE.FrontSide
+        });
+        const glassSphere = new THREE.Mesh(glassGeo, glassMat);
+        this.ballMesh.add(glassSphere);
         
         // Body
         const shape = new CANNON.Sphere(radius);
