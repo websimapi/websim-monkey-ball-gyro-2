@@ -116,7 +116,7 @@ export class Game {
         this.playerManager.update();
         
         // 4. Camera Follow
-        this.sceneManager.updateCamera(this.playerManager.ballMesh, this.levelManager.levelGroup);
+        this.sceneManager.updateCamera(this.playerManager.ballMesh);
         
         // 5. Game Logic
         this.timeLeft -= dt;
