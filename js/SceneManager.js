@@ -11,8 +11,8 @@ export class SceneManager {
         this.worldPivot = new THREE.Group();
         
         // Camera settings
-        this.cameraOffset = new THREE.Vector3(0, 22, 16);
-        this.cameraLerpFactor = 0.08;
+        this.cameraOffset = new THREE.Vector3(0, 26, 15);
+        this.cameraLerpFactor = 0.12;
         this.currentLookAt = null;
     }
 
@@ -23,7 +23,7 @@ export class SceneManager {
         this.scene.add(this.worldPivot);
         
         // Init Camera
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         // Init Renderer
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -65,7 +65,7 @@ export class SceneManager {
             this.currentLookAt = targetWorldPos.clone();
         } else {
             // Smoothly interpolate the focus point to reduce jitter
-            this.currentLookAt.lerp(targetWorldPos, 0.15);
+            this.currentLookAt.lerp(targetWorldPos, 0.2);
         }
 
         const desiredPos = this.currentLookAt.clone().add(this.cameraOffset);
