@@ -3,6 +3,7 @@ import * as CANNON from 'cannon-es';
 
 export class LevelManager {
     constructor(scene, world) {
+        this.currentMaxTilt = 0.5;
         this.scene = scene;
         this.world = world;
         this.meshes = [];
@@ -101,7 +102,8 @@ export class LevelManager {
                     map.push(".".repeat(Math.floor(w/2)-1) + "S" + ".".repeat(Math.ceil(w/2)));
                     return map;
                 })(),
-                scale: 4
+                scale: 4,
+                maxTilt: 0.15
             },
             // Level 3: Golden Zig-Zag
             // Sharp 90 degree turns, still walled.
@@ -186,6 +188,7 @@ export class LevelManager {
         if (idx >= levels.length) return null;
 
         const data = levels[idx];
+        this.currentMaxTilt = data.maxTilt || 0.5;
         this.applyTheme(levelNum);
         const startPos = this.buildFromMap(data.map, data.scale);
         

@@ -253,7 +253,7 @@ export class Game {
         // Input Y is -1 (Forward) or Beta (Forward Tilt)
         // With 'tiltX = input.y * maxTilt':
         //   Forward (y < 0 or beta mapped) -> Negative X Rotation -> Far side DOWN -> Roll Forward
-        const maxTilt = 0.5; // Radians (~28 degrees)
+        const maxTilt = this.levelManager.currentMaxTilt;
         const tiltX = input.y * maxTilt;
         const tiltZ = -input.x * maxTilt;
 
