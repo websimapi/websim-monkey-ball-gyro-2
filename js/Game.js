@@ -261,11 +261,7 @@ export class Game {
         // Keep gravity constant down
         this.world.gravity.set(0, -30, 0);
         
-        // Visual Tilt (Juice)
-        // We tilt the whole level visually opposite to gravity to make it look like the board is tilting
-        // Actually, InputManager gives us board tilt.
-        // If board tilts forward (Input Y < 0), we want visual rotation X to be negative?
-        this.levelManager.setVisualTilt(input.y * 0.2, -input.x * 0.2); // Small visual tilt
+
 
         // 2. Step Physics
         this.world.step(1 / 60, dt, 10);
