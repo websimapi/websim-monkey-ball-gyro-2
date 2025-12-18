@@ -254,8 +254,8 @@ export class Game {
         const input = this.inputManager.getInput();
         
         const maxTilt = this.levelManager.currentMaxTilt;
-        // Inverting Y input as requested
-        const tiltX = -input.y * maxTilt; 
+        // Standard tilt: Input Y (Tilt Back) -> Positive Rotation -> Roll Back
+        const tiltX = input.y * maxTilt; 
         const tiltZ = -input.x * maxTilt;
 
         // Visual Tilt (World Pivot)
