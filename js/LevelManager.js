@@ -21,8 +21,18 @@ export class LevelManager {
         
         // Textures
         const loader = new THREE.TextureLoader();
-        this.floorMat = new THREE.MeshStandardMaterial({ map: loader.load('checkered_floor.png') });
-        this.wallMat = new THREE.MeshStandardMaterial({ map: loader.load('wood_texture.png') });
+        
+        const floorTex = loader.load('checkered_floor.png');
+        floorTex.wrapS = THREE.RepeatWrapping;
+        floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(0.5, 0.5); 
+        this.floorMat = new THREE.MeshStandardMaterial({ map: floorTex });
+        
+        const wallTex = loader.load('wood_texture.png');
+        wallTex.wrapS = THREE.RepeatWrapping;
+        wallTex.wrapT = THREE.RepeatWrapping;
+        this.wallMat = new THREE.MeshStandardMaterial({ map: wallTex });
+        
         this.goalMat = new THREE.MeshBasicMaterial({ map: loader.load('goal_texture.png'), transparent: true });
     }
 
@@ -52,7 +62,6 @@ export class LevelManager {
         this.currentLevelIndex = levelNum;
         const levels = [
             // Level 1: Grass Plains
-            // Large square platform, no walls.
             {
                 map: [
                     "................",
@@ -70,45 +79,12 @@ export class LevelManager {
                 ],
                 scale: 4
             },
-            // Level 2: The Serpentine
+            // Level 2: The Serpentine (Procedural 3D Track)
             {
-                map: (() => {
-                    const map = [];
-                    const h = 60; 
-                    const w = 15;
-                    
-                    // Generate a winding path
-                    for (let i = 0; i < h; i++) {
-                        let row = "";
-                        // Start and End pads
-                        if (i < 5) {
-                            row = ".......S.......";
-                        } else if (i > h - 5) {
-                            row = ".......G.......";
-                        } else {
-                            // Sine wave walls
-                            const center = 7 + Math.sin(i * 0.3) * 4;
-                            const pathWidth = 4;
-                            
-                            for (let c = 0; c < w; c++) {
-                                if (c > center - pathWidth/2 && c < center + pathWidth/2) {
-                                    row += "."; // Path
-                                } else {
-                                    row += " "; // No Wall (Void)
-                                }
-                            }
-                        }
-                        // Ensure row length
-                        while(row.length < w) row += " ";
-                        map.push(row);
-                    }
-                    return map.reverse();
-                })(),
-                scale: 4,
-                maxTilt: 0.7
+                type: 'procedural_track',
+                maxTilt: 0.75
             },
             // Level 3: Golden Zig-Zag
-            // Sharp 90 degree turns, still walled.
             {
                 map: [
                     "      WWWWWWWW      ",
@@ -134,8 +110,7 @@ export class LevelManager {
                 ],
                 scale: 2
             },
-            // Level 4: Sky Plains (No walls)
-            // Wide open track, easy mode racing.
+            // Level 4: Sky Plains
             {
                 map: [
                     "....................",
@@ -161,7 +136,6 @@ export class LevelManager {
                 scale: 2
             },
             // Level 5: Dual Lane Highway
-            // Open, with obstacles/holes in middle
             {
                 map: [
                     "....................",
@@ -192,7 +166,13 @@ export class LevelManager {
         const data = levels[idx];
         this.currentMaxTilt = data.maxTilt || 0.5;
         this.applyTheme(levelNum);
-        const startPos = this.buildFromMap(data.map, data.scale);
+        
+        let startPos;
+        if (data.type === 'procedural_track') {
+            startPos = this.buildSmoothTrack();
+        } else {
+            startPos = this.buildFromMap(data.map, data.scale);
+        }
         
         this.captureInitialStates();
         return startPos;
@@ -311,6 +291,79 @@ export class LevelManager {
 
     captureInitialStates() {
         // No-op
+    }
+
+    buildSmoothTrack() {
+        // 1. Generate Curve (Descending Serpentine)
+        const points = [];
+        const segments = 120;
+        
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            
+            // Winding path
+            const x = Math.sin(t * Math.PI * 5) * 15; 
+            const z = -t * 180; // Long track length
+            // Gentle varying slope, generally down
+            const y = Math.cos(t * Math.PI * 3) * 4 - (t * 25); 
+            
+            points.push(new THREE.Vector3(x, y, z));
+        }
+        
+        const curve = new THREE.CatmullRomCurve3(points);
+        
+        // 2. Shape (Track Cross-section with low curbs)
+        const shape = new THREE.Shape();
+        const w = 6;     // Track width
+        const h = 1.0;   // Curb height
+        const t = 1.0;   // Thickness
+        
+        // Construct U-shape (Cross section)
+        shape.moveTo(-w/2 - t, h);      // Top Left Outer
+        shape.lineTo(-w/2 - t, -t);     // Bottom Left Outer
+        shape.lineTo(w/2 + t, -t);      // Bottom Right Outer
+        shape.lineTo(w/2 + t, h);       // Top Right Outer
+        shape.lineTo(w/2, h);           // Top Right Inner (Curb top)
+        shape.lineTo(w/2, 0);           // Bottom Right Inner (Track surface edge)
+        shape.lineTo(-w/2, 0);          // Bottom Left Inner
+        shape.lineTo(-w/2, h);          // Top Left Inner
+        
+        // 3. Extrude Visual Mesh
+        const extrudeSettings = {
+            steps: 200, 
+            bevelEnabled: false,
+            extrudePath: curve
+        };
+        
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        
+        const mesh = new THREE.Mesh(geometry, this.floorMat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.levelGroup.add(mesh);
+        
+        // 4. Physics Body (Trimesh)
+        const positions = geometry.attributes.position.array;
+        const indices = [];
+        for(let i = 0; i < positions.length / 3; i++) {
+            indices.push(i);
+        }
+        
+        const trimesh = new CANNON.Trimesh(positions, indices);
+        const body = new CANNON.Body({ mass: 0 }); // Static
+        body.addShape(trimesh);
+        
+        this.world.addBody(body);
+        this.bodies.push(body);
+        
+        // 5. Start & Goal
+        const startPoint = points[0];
+        const goalPoint = points[points.length - 1];
+        
+        this.createGoal(goalPoint.x, goalPoint.y + 0.5, goalPoint.z);
+        
+        // Return start pos
+        return { x: startPoint.x, y: startPoint.y + 5, z: startPoint.z };
     }
 }
 
