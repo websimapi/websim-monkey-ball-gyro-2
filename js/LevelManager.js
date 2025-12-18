@@ -356,8 +356,8 @@ export class LevelManager {
             const r2 = base + 3;
             
             // Two triangles per segment
-            geometryIndices.push(l1, l2, r1);
-            geometryIndices.push(r1, l2, r2);
+            geometryIndices.push(l1, r1, l2);
+            geometryIndices.push(r1, r2, l2);
         }
         
         const geometry = new THREE.BufferGeometry();
