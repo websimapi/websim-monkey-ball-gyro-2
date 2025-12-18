@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Monkey Ball Gyro</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* Sky blue */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            transition: opacity 0.3s;
+        }
+        .menu-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+            padding: 20px;
+            max-width: 400px;
+        }
+        h1 {
+            color: #FFD700;
+            font-size: 3.5rem;
+            margin: 0;
+            line-height: 1;
+            text-shadow: 4px 4px 0 #b37400, -2px -2px 0 #fff;
+            transform: rotate(-5deg);
+        }
+        h2 {
+            color: white;
+            font-size: 2rem;
+            margin: 0;
+            text-shadow: 2px 2px 0 #000;
+        }
+        p {
+            color: #eee;
+            font-size: 1.1rem;
+            line-height: 1.4;
+            margin: 0;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: #FFD700;
+            border: 4px solid #FFA500;
+            border-radius: 50px;
+            color: #333;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b37400;
+            transition: transform 0.1s, box-shadow 0.1s;
+            text-transform: uppercase;
+            width: 100%;
+            max-width: 300px;
+        }
+        button:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #b37400;
+        }
+        .stats {
+            color: white;
+            font-size: 1.2rem;
+            text-shadow: 2px 2px 0 #000;
+            font-weight: bold;
+        }
+        #timer {
+            font-size: 2rem;
+            color: #FFD700;
+        }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+        /* Calibration phone icon */
+        .phone-icon {
+            width: 80px;
+            height: 140px;
+            border: 4px solid white;
+            border-radius: 15px;
+            position: relative;
+            margin: 20px;
+            animation: pulse 2s infinite;
+        }
+        .phone-icon::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 4px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 2px;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); border-color: white; }
+            50% { transform: scale(1.05); border-color: #FFD700; }
+            100% { transform: scale(1); border-color: white; }
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://esm.sh/three@0.160.0",
+                "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+                "cannon-es": "https://esm.sh/cannon-es@0.20.0"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="ui-layer">
+        <div class="stats">Level: <span id="level-display">1</span></div>
+        <div class="stats" id="timer">60.00</div>
+    </div>
+    
+    <!-- Start Menu -->
+    <div id="menu-start" class="menu-overlay">
+        <div class="menu-content">
+            <h1>MONKEY<br>ROLL</h1>
+            <p>Tilt your phone to guide the monkey to the goal!</p>
+            <button id="btn-start">PLAY</button>
+        </div>
+    </div>
+
+    <!-- Calibration Menu -->
+    <div id="menu-calibrate" class="menu-overlay hidden">
+        <div class="menu-content">
+            <h2>CALIBRATE</h2>
+            <div class="phone-icon"></div>
+            <p>Hold your device comfortable and flat.</p>
+            <button id="btn-calibrate">I'M READY</button>
+        </div>
+    </div>
+
+    <!-- Game Over / Level Clear Menu -->
+    <div id="menu-result" class="menu-overlay hidden">
+        <div class="menu-content">
+            <h2 id="result-title">LEVEL CLEAR!</h2>
+            <p id="result-msg">Great job!</p>
+            <button id="btn-next">NEXT LEVEL</button>
+        </div>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
