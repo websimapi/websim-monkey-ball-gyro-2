@@ -11,8 +11,8 @@ export class SceneManager {
         this.worldPivot = new THREE.Group();
         
         // Camera settings - Intelligent Top-Down
-        this.cameraOffset = new THREE.Vector3(0, 48, 24);
-        this.cameraLerpFactor = 0.06;
+        this.cameraOffset = new THREE.Vector3(0, 70, 5);
+        this.cameraLerpFactor = 0.08;
         this.currentLookAt = null;
     }
 
@@ -59,18 +59,30 @@ export class SceneManager {
         this.scene.add(this.dirLight.target);
     }
 
-    updateCamera(targetObject) {
+    updateCamera(targetObject, velocity = null) {
         if (!targetObject) return;
         
         // Use World Position because target might be inside rotated pivot
         const targetWorldPos = new THREE.Vector3();
         targetObject.getWorldPosition(targetWorldPos);
 
+        // Smart Camera: Look ahead based on velocity
+        const focusPoint = targetWorldPos.clone();
+        if (velocity) {
+            const lookAheadFactor = 0.5;
+            const maxLookAhead = 12;
+            const vx = Math.max(-20, Math.min(20, velocity.x));
+            const vz = Math.max(-20, Math.min(20, velocity.z));
+            
+            focusPoint.x += Math.max(-maxLookAhead, Math.min(maxLookAhead, vx * lookAheadFactor));
+            focusPoint.z += Math.max(-maxLookAhead, Math.min(maxLookAhead, vz * lookAheadFactor));
+        }
+
         if (!this.currentLookAt) {
-            this.currentLookAt = targetWorldPos.clone();
+            this.currentLookAt = focusPoint;
         } else {
             // Smoothly interpolate the focus point to reduce jitter
-            this.currentLookAt.lerp(targetWorldPos, 0.15);
+            this.currentLookAt.lerp(focusPoint, 0.12);
         }
 
         const desiredPos = this.currentLookAt.clone().add(this.cameraOffset);
