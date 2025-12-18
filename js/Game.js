@@ -257,8 +257,9 @@ export class Game {
         
         const maxTilt = this.levelManager.currentMaxTilt;
         // Standard tilt: Input Y (Tilt Forward/Back). 
-        // Inverting Y to match natural physics: Tilt Phone Forward (Top Down) -> Board Tips Forward -> Ball Rolls Forward
-        const tiltX = -input.y * maxTilt; 
+        // Input Y is negative for Forward (W/Up or Tilt Forward).
+        // Negative Input -> Negative TiltX (Board Tips Forward) -> Ball Rolls Forward.
+        const tiltX = input.y * maxTilt; 
         const tiltZ = -input.x * maxTilt;
 
         // Visual Tilt (World Pivot)
