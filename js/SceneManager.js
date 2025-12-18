@@ -14,6 +14,10 @@ export class SceneManager {
         this.cameraOffset = new THREE.Vector3(0, 26, 15);
         this.cameraLerpFactor = 0.12;
         this.currentLookAt = null;
+
+        // Transparency Raycaster
+        this.raycaster = new THREE.Raycaster();
+        this.obscuredObjects = [];
     }
 
     init() {
@@ -54,7 +58,7 @@ export class SceneManager {
         this.scene.add(dirLight);
     }
 
-    updateCamera(targetObject) {
+    updateCamera(targetObject, terrainGroup) {
         if (!targetObject) return;
         
         // Use World Position because target might be inside rotated pivot
@@ -73,6 +77,67 @@ export class SceneManager {
         // Smooth follow
         this.camera.position.lerp(desiredPos, this.cameraLerpFactor);
         this.camera.lookAt(this.currentLookAt);
+
+        // Handle Terrain Transparency
+        if (terrainGroup) {
+            this.checkObstructions(targetWorldPos, terrainGroup);
+        }
+    }
+
+    checkObstructions(targetPos, terrainGroup) {
+        // Raycast from camera to target
+        const direction = new THREE.Vector3().subVectors(targetPos, this.camera.position);
+        const distance = direction.length();
+        direction.normalize();
+
+        this.raycaster.set(this.camera.position, direction);
+        
+        // We only care about intersections closer than the player
+        const intersects = this.raycaster.intersectObject(terrainGroup, true);
+        
+        const newObscured = [];
+        const foundUuids = new Set();
+
+        for (const hit of intersects) {
+            // Check if hit is substantially closer than the target (avoid self-collision with target area)
+            if (hit.distance < distance - 1.5) {
+                const mesh = hit.object;
+                if (!mesh.isMesh) continue;
+                
+                // Avoid processing same object multiple times in one frame
+                if (foundUuids.has(mesh.uuid)) continue;
+
+                // Track this mesh as currently obscuring
+                foundUuids.add(mesh.uuid);
+                newObscured.push(mesh);
+
+                // If not already faded, fade it
+                if (!mesh.userData.isFaded) {
+                    if (!mesh.userData.originalMaterial) {
+                        mesh.userData.originalMaterial = mesh.material;
+                    }
+                    // Clone to make unique instance with transparency
+                    const newMat = mesh.userData.originalMaterial.clone();
+                    newMat.transparent = true;
+                    newMat.opacity = 0.25;
+                    mesh.material = newMat;
+                    mesh.userData.isFaded = true;
+                }
+            }
+        }
+
+        // Restore objects that are no longer obscuring
+        for (const obj of this.obscuredObjects) {
+            if (!foundUuids.has(obj.uuid)) {
+                if (obj.userData.originalMaterial) {
+                    obj.material.dispose();
+                    obj.material = obj.userData.originalMaterial;
+                }
+                obj.userData.isFaded = false;
+            }
+        }
+
+        this.obscuredObjects = newObscured;
     }
 
     onResize() {
