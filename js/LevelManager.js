@@ -294,39 +294,34 @@ export class LevelManager {
     }
 
     buildSmoothTrack() {
-        // 1. Generate Curve (Descending Serpentine)
+        // 1. Generate Curve (Left-to-Right Serpentine)
         const points = [];
         const segments = 120;
         
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
             
-            // Winding path
-            const x = Math.sin(t * Math.PI * 5) * 15; 
-            const z = -t * 180; // Long track length
+            // Winding path along X axis (Left to Right)
+            const x = t * 250; 
+            const z = Math.sin(t * Math.PI * 5) * 20; // Wiggle depth
             // Gentle varying slope, generally down
-            const y = Math.cos(t * Math.PI * 3) * 4 - (t * 25); 
+            const y = Math.cos(t * Math.PI * 3) * 4 - (t * 30); 
             
             points.push(new THREE.Vector3(x, y, z));
         }
         
         const curve = new THREE.CatmullRomCurve3(points);
         
-        // 2. Shape (Track Cross-section with low curbs)
+        // 2. Shape (Flat Track - Dangerous! No Walls)
         const shape = new THREE.Shape();
-        const w = 6;     // Track width
-        const h = 1.0;   // Curb height
-        const t = 1.0;   // Thickness
+        const w = 8;        // Track width (slightly wider)
+        const thick = 1.0;  // Thickness
         
-        // Construct U-shape (Cross section)
-        shape.moveTo(-w/2 - t, h);      // Top Left Outer
-        shape.lineTo(-w/2 - t, -t);     // Bottom Left Outer
-        shape.lineTo(w/2 + t, -t);      // Bottom Right Outer
-        shape.lineTo(w/2 + t, h);       // Top Right Outer
-        shape.lineTo(w/2, h);           // Top Right Inner (Curb top)
-        shape.lineTo(w/2, 0);           // Bottom Right Inner (Track surface edge)
-        shape.lineTo(-w/2, 0);          // Bottom Left Inner
-        shape.lineTo(-w/2, h);          // Top Left Inner
+        // Simple flat rectangle
+        shape.moveTo(-w/2, 0);
+        shape.lineTo(-w/2, -thick);
+        shape.lineTo(w/2, -thick);
+        shape.lineTo(w/2, 0);
         
         // 3. Extrude Visual Mesh
         const extrudeSettings = {

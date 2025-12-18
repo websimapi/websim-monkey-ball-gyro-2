@@ -94,7 +94,7 @@ export class Game {
         // 1. Input & Physics Gravity
         const input = this.inputManager.getInput();
         const maxTilt = this.levelManager.currentMaxTilt;
-        const tiltX = input.y * maxTilt; 
+        const tiltX = -input.y * maxTilt; 
         const tiltZ = -input.x * maxTilt;
 
         // Visual Tilt (World Pivot)
