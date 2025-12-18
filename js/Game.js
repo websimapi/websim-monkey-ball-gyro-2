@@ -250,10 +250,11 @@ export class Game {
         const input = this.inputManager.getInput();
         
         // Terrain Tilt
-        // Input Y is -1 (Forward) -> We want Positive X rotation (Slope down to -Z)
-        // Input X is 1 (Right) -> We want Negative Z rotation (Slope down to +X)
+        // Input Y is -1 (Forward) or Beta (Forward Tilt)
+        // With 'tiltX = input.y * maxTilt':
+        //   Forward (y < 0 or beta mapped) -> Negative X Rotation -> Far side DOWN -> Roll Forward
         const maxTilt = 0.5; // Radians (~28 degrees)
-        const tiltX = -input.y * maxTilt;
+        const tiltX = input.y * maxTilt;
         const tiltZ = -input.x * maxTilt;
 
         this.levelManager.updateTilt(tiltX, tiltZ);
