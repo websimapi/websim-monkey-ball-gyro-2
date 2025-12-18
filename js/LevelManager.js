@@ -94,18 +94,18 @@ export class LevelManager {
                                 if (c > center - pathWidth/2 && c < center + pathWidth/2) {
                                     row += "."; // Path
                                 } else {
-                                    row += "W"; // Wall
+                                    row += " "; // No Wall (Void)
                                 }
                             }
                         }
                         // Ensure row length
-                        while(row.length < w) row += "W";
+                        while(row.length < w) row += " ";
                         map.push(row);
                     }
                     return map.reverse();
                 })(),
                 scale: 4,
-                maxTilt: 0.25
+                maxTilt: 0.7
             },
             // Level 3: Golden Zig-Zag
             // Sharp 90 degree turns, still walled.
